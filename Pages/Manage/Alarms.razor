@@ -1,0 +1,128 @@
+﻿@page "/manage/alarms"
+﻿@using System.Net.Http.Json
+@using ManagedPower.Portal.Models
+@using ManagedPower.SDK.Models.API
+@using Shared.Dialogs
+
+@inject HttpClient httpClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<MudTable Items="@AllAlarms" Dense="@dense" Hover="@hover" ReadOnly="true" Filter="new Func<Alarm,bool>(FilterFunc)" @bind-SelectedItem="selectedItem" SortLabel="Sort By" MultiSelection="false" @ref="mudTable"
+          RowClassFunc="@SelectedRowClassFunc" OnRowClick="@(() => EditStore(selectedItem.id))" T="ManagedPower.SDK.Models.API.Alarm">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Alarms</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <ColGroup>
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<Alarm, object>(x=>x.error)">Error</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<Alarm, object>(x=>x.statusName)">Status</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<Alarm, object>(x=>x.alarmCount)">Alarm Count</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<Alarm, object>(x=>x.severityName)">Severity</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<Alarm, object>(x=>x.lastAt)">Last Updated</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Error">@context.error</MudTd>
+        <MudTd DataLabel="Status">@context.statusName</MudTd>
+        <MudTd DataLabel="Alarm Count">@context.alarmCount</MudTd>
+        <MudTd DataLabel="Severity">@context.severityName</MudTd>
+        <MudTd DataLabel="Last Updated">@context.lastAt</MudTd>       
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+
+@code {
+    private List<string> editEvents = new();
+    private bool dense = false;
+    private bool hover = true;
+    private bool ronly = false;
+    private bool canCancelEdit = false;
+    private string searchString = "";
+    private Alarm selectedItem = new Alarm();
+
+    private int selectedRowNumber = -1;
+    private MudTable<Alarm> mudTable;
+    private List<string> clickedEvents = new();
+
+
+    public List<ManagedPower.SDK.Models.API.Alarm> AllAlarms { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        AllAlarms = await httpClient.GetFromJsonAsync<List<Alarm>>("http://cluw12q05.macsstores.com/managedpower/alarms/");
+    }
+
+    public void EditStore(int id)
+    {
+       NavigationManager.NavigateTo($"manage/alarms/alarm?id={id}");
+    }
+
+    private string SelectedRowClassFunc(Alarm element, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (mudTable.SelectedItem != null && mudTable.SelectedItem.Equals(element))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+
+    private void ClearEventLog()
+    {
+        editEvents.Clear();
+    }
+
+    private bool FilterFunc(Alarm element)
+    {
+            if (string.IsNullOrWhiteSpace(searchString))
+                return true;
+            if (element.error.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (element.message.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+            return false;
+    }
+}

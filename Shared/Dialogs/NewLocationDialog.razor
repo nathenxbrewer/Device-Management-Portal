@@ -1,0 +1,185 @@
+﻿@inject ISnackbar Snackbar
+@using CircleK.SNOW.SDK.Models
+@using CircleK.Smartsheet
+@using CircleK.Smartsheet.Models
+@using Newtonsoft.Json
+@using System.Text
+@using CircleK.SNOW.SDK
+@using System.Net.Http.Json
+
+@inject HttpClient httpClient
+@inject IDialogService DialogService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-3 mb-n1" />
+            Add Location
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+
+
+        <MudAutocomplete @ref=selectedSiteField T="Site" Label="Store" Value="SelectedSite" ValueChanged=OnSelectedSiteChanged SearchFunc="@Search1" ToStringFunc="@converter" SelectValueOnTab="true" MaxItems="100"/>
+
+@*        <MudTextField @bind-Value="@SelectedSite.StoreNumber" Label="Store Number" />
+*@        <MudTextField @bind-Value="@SelectedSite.BU" Label="BU" />
+        <MudTextField @bind-Value="@SelectedSite.Region" Label="Division/Region" />
+        <MudTextField @bind-Value="@SelectedSite.MktDist" Label="Market"/>
+        <MudTextField @bind-Value="@SelectedSite.Address" Label="Address"/>
+        <MudTextField @bind-Value="@SelectedSite.City" Label="City"/>
+        <MudTextField @bind-Value="@SelectedSite.St" Label="State"/>
+        <MudTextField @bind-Value="@SelectedSite.Longitude" Label="Longitude"/>
+        <MudTextField @bind-Value="@SelectedSite.Latitude" Label="Latitude"/>
+        <MudTextField @bind-Value="@SelectedSite.Phone" Label="Phone"/>
+
+@*        <MudNumericField @bind-Value="@NewLocation.expectedDevices" Label="ExpectedDevices"/>
+*@        <MudTextField @bind-Value="@SelectedSite.POSType" Label="POS Type"/>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Success" OnClick="@(() => AddLocation())">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public Site SelectedSite { get; set; }
+
+
+    public ManagedPower.SDK.Models.API.Location NewLocation { get; set; }
+
+    public List<Site> AllSites { get; set; }
+    public List<ManagedPower.SDK.Models.API.Location> ExistingLocations { get; set; } = new();
+
+
+    Func<Site, string> converter = p => p?.StoreNumber;
+
+    MudAutocomplete<Site> selectedSiteField { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if(SelectedSite == null)
+        {
+            SelectedSite = new();
+        }
+
+        NewLocation = new();
+
+        if(Vars.AllSites != null)
+        {
+        AllSites = Vars.AllSites;
+        }
+
+        ExistingLocations = await httpClient.GetFromJsonAsync<List<ManagedPower.SDK.Models.API.Location>>("http://cluw12q05.macsstores.com/managedpower/locations/");
+
+
+
+
+    }
+
+    private async Task<IEnumerable<Site>> Search1(string value)
+    {
+        // if text is null or empty, show complete list
+        if (string.IsNullOrEmpty(value))
+            return AllSites;
+        return AllSites.Where(x => x.StoreNumber.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    void OnSelectedSiteChanged()
+    {
+        SelectedSite = selectedSiteField.Value;
+
+        if (SelectedSite.Longitude == null || SelectedSite.Latitude == null)
+        {
+            //Get lon and lat from SNOW
+            var currentLocation = CircleK.SNOW.SDK.LocationModel.GetLocationInfo(SelectedSite.StoreNumber, false);
+            if (currentLocation.result.records_count > 0)
+            {
+                var currentstore = JsonConvert.DeserializeObject<Location>(currentLocation.result.records.First().ToString());
+                SelectedSite.Longitude = currentstore.longitude;
+                SelectedSite.Latitude = currentstore.latitude;
+            }
+        }
+    }
+
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async void AddLocation()
+    {
+        if (!ExistingLocations.Any(x => x.storenumber == SelectedSite.StoreNumber))
+        {
+
+
+            MudDialog.Close(DialogResult.Ok("test"));
+
+            if (SelectedSite.POSType == "VF Commander-Ruby2")
+            {
+                SelectedSite.POSType = "Verifone";
+            }
+
+
+
+            var location = new ManagedPower.SDK.Models.API.Location()
+                {
+                    created = DateTime.Now,
+                    modified = DateTime.Now,
+                    storenumber = SelectedSite.StoreNumber,
+                    division = SelectedSite.BU,
+                    region = SelectedSite.Region,
+                    market = SelectedSite.MktDist,
+                    address = SelectedSite.Address,
+                    city = SelectedSite.City,
+                    state = SelectedSite.St,
+                    phone = SelectedSite.Phone,
+                    status = "Installed",
+                    expectedDevices = NewLocation.expectedDevices,
+                    posType = SelectedSite.POSType,
+                    lon = float.Parse(SelectedSite.Longitude),
+                    lat = float.Parse(SelectedSite.Latitude)
+                };
+
+            //if(SelectedSite.Longitude != null)
+            //{
+            //    location.lon = float.Parse(SelectedSite.Longitude);
+            //    location.lat = float.Parse(SelectedSite.Latitude);
+            //}
+
+
+            var jsonstring = JsonConvert.SerializeObject(location);
+
+            using (var client = new HttpClient())
+            {
+                var res = client.PostAsync("http://cluw12q05.macsstores.com/managedpower/locations/",
+                    new StringContent(jsonstring,
+                    Encoding.UTF8, "application/json")
+                );
+                try
+                {
+                    res.Result.EnsureSuccessStatusCode();
+                    Snackbar.Add($"Location {SelectedSite.StoreNumber} has been added!", Severity.Success);
+
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+            }
+        }
+        else
+        {
+                                    bool? result = await DialogService.ShowMessageBox(
+    "Error",
+    "This store has already been registered!",
+    yesText: "My Bad");
+        }
+    }
+    }

@@ -1,0 +1,136 @@
+﻿@using ManagedPower.SDK.Models.API
+@inject HttpClient httpClient
+@inject ISnackbar snackbar
+@using Microsoft.AspNetCore.WebUtilities
+﻿@using System.Net.Http.Json
+
+<MudForm @ref="form">
+    <MudTextField T="string" Label="Device Name" Text="@tempDeviceModel.devicename" ValueChanged="OnValueChanged"/>
+    <MudTextField T="string" Label="Device IP" Text="@ThisDevice.deviceip" />
+    <MudTextField T="string" Label="Store Number" Text="@ThisDevice.store" />
+    <MudTextField T="int" Label="Lane Number" Value="@ThisDevice.lanenumber" />
+    <MudTextField T="string" Label="Serial Number" Text="@ThisDevice.serial" />
+    <MudTextField T="string" Label="MAC Address" Text="@ThisDevice.mac" />
+    <MudDatePicker Label="Install Date"  Date="@ThisDevice.installdate"/>
+    <MudTextField T="string" Label="Status" Text="@ThisDevice.status" />
+    <MudTextField T="bool" Label="Activated" Value="@ThisDevice.activated" />
+    <MudDatePicker Label="Last Modified"  Date="@ThisDevice.modified"/>
+</MudForm>
+<MudGrid Class="mt-4">
+        <MudItem xs="12" sm="6" md="6">
+            <MudPaper Class="rounded-lg pb-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6" Align="Align.Left">Heartbeat Summary</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudTooltip Text="Refresh Heartbeat Data">
+                            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Default" OnClick="PopulateHeartbeat"/>
+                            </MudTooltip>
+                       </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                 @*<MudField Label="Last Heartbeat" Variant="Variant.Text">@ThisHeartbeat.timestamp</MudField>*@
+
+                  @if (ThisHeartbeat != null)
+                    {
+
+                    <MudTable Items="@HeartbeatSummary" Hover="false" Breakpoint="Breakpoint.Sm" LoadingProgressColor="Color.Info" Bordered="false" >
+                        <RowTemplate>
+                            <MudTd DataLabel="Load Name">@context.Key</MudTd>
+
+                      @if(context.Value.GetType() == typeof(DateTime))
+                        {
+                            bool badDate = (DateTime.Now - (DateTime)context.Value).TotalMinutes > 60;
+
+                            if(badDate)
+                            {
+                                <MudTd DataLabel="Load Number"><MudText Color="Color.Error" Style="font-weight: 600;">@context.Value</MudText></MudTd>
+                            }
+                            else
+                            {
+                                <MudTd DataLabel="Load Number"><MudText Color="Color.Success" Style="font-weight: 600;">@context.Value</MudText></MudTd>
+                            }
+
+                        }
+                        else
+                        {
+                            <MudTd DataLabel="Load Number">@context.Value</MudTd>
+
+                        }
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudText Typo="@Typo.body1">No data to display.</MudText>
+                }
+
+
+                </MudCardContent>
+                <MudCardActions Class="d-flex justify-center">
+                </MudCardActions>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="6">
+            <MudPaper Elevation="1" Class="rounded-lg pb-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.body1" Align="Align.Left">Device Settings</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                </MudCardContent>
+                <MudCardActions Class="d-flex justify-center">
+                </MudCardActions>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mt-4">
+        <AlarmsDisplay Alarms=ActiveAlarms/>
+</MudGrid>
+<MudGrid Class="mt-4">
+        <MudItem xs="12" sm="12" md="12">
+
+                <MudTable Items="@RebootHistories" Hover="true" Breakpoint="Breakpoint.Sm" LoadingProgressColor="Color.Info">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Activity Log</MudText>
+                    </ToolBarContent>
+
+                        <HeaderContent>
+                            @if (RebootHistories.Count() > 0)
+                           {
+
+                            <MudTh>Load Name</MudTh>
+                            <MudTh>Load Number</MudTh>
+                            <MudTh>User IP Address</MudTh>
+                            <MudTh>Device IP</MudTh>
+                            <MudTh>User Email</MudTh>
+                    <MudTh>Timestamp</MudTh>
+
+                }
+                else
+                {
+                        <MudText Class="ma-4" Typo="@Typo.body1">No data to display.</MudText>
+
+                }
+            </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Load Name">@context.portname</MudTd>
+                            <MudTd DataLabel="Load Number">@context.portnumber</MudTd>
+                            <MudTd DataLabel="User IP Address">@context.userip</MudTd>
+                            <MudTd DataLabel="Device IP">@context.deviceip</MudTd>
+                            <MudTd DataLabel="User Email">@context.user</MudTd>
+                            <MudTd DataLabel="Timestamp">@context.timestamp</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+        </MudItem>
+@*    <MudAppBar Bottom="true" Fixed="true" Elevation="1" Style="background:#F3F4F5">
+<MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error">Cancel Changes</MudButton>
+
+        <MudSpacer/>
+<MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Save" Color="Color.Info">Save Changes</MudButton>
+    </MudAppBar>*@
+</MudGrid>
+

@@ -1,0 +1,89 @@
+﻿@page "/personal/account"
+
+@inject ISnackbar Snackbar
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Account</MudText>
+        <MudGrid>
+            <MudItem xs="12" sm="4" md="3">
+                <MudCard >
+                    <MudCardHeader>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex justify-center mb-11">
+                            <MudAvatar Image="@AvatarImageLink" Style="height:100px; width:100px;">
+                                @if(AvatarImageLink == null)
+                                {
+                                    <MudIcon Icon="images/profile.png" Size="Size.Large"></MudIcon>
+                                }
+                            </MudAvatar>
+                                
+                        </div>
+                        <MudText Align="Align.Center">@FirstName @LastName</MudText>
+                        <MudText Align="Align.Center">@JobTitle</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="8" md="9">
+                <MudCard >
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText>Profile Details</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField ReadOnly=true @bind-Value="FirstName" Label="First Name" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField ReadOnly=true @bind-Value="LastName" Label="First Name" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField ReadOnly=true @bind-Value="JobTitle" Label="Job Title" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField ReadOnly=true @bind-Value="Email" Label="Email" Variant="Variant.Outlined" HelperText="Dont worry, we shall not spam!" InputType="InputType.Email" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+  <MudItem xs="12">
+                <MudCard >
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText>Preferences</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField ReadOnly=true @bind-Value="FirstName" Label="First Name" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField ReadOnly=true @bind-Value="LastName" Label="First Name" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField ReadOnly=true @bind-Value="JobTitle" Label="Job Title" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField ReadOnly=true @bind-Value="Email" Label="Email" Variant="Variant.Outlined" HelperText="Dont worry, we shall not spam!" InputType="InputType.Email" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+@code {
+    public string AvatarImageLink { get; set; } = Vars.base64UserPhoto;
+    public string FirstName { get; set; } = Vars.LoggedInUser.givenName;
+    public string LastName { get; set; } = Vars.LoggedInUser.surname;
+    public string JobTitle { get; set; } = Vars.LoggedInUser.jobTitle;
+    public string Email { get; set; } = Vars.LoggedInUser.mail;
+
+    MudForm form;
+    MudTextField<string> pwField1;
+} 

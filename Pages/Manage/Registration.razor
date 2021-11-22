@@ -1,0 +1,248 @@
+﻿@page "/manage/registration"
+@using System.Net.Http.Json
+@using System.Text.RegularExpressions
+@using ManagedPower.Portal.Shared.Dialogs
+@using ManagedPower.SDK.Models.API
+@using System.Text
+@using Newtonsoft.Json
+@using CircleK.Mongoose.SDK
+
+            <MudContainer Style=" width:100% ;overflow-y: scroll">
+
+    <style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+
+@if(Vars.NavRegister)
+{
+   
+    <MudCard Style="width:100%">
+        <MudCardHeader>
+         <CardHeaderContent>
+            <MudText Typo="Typo.h6">Device Registration</MudText>
+        </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @ref="form" @bind-IsValid="@success" >
+
+            <MudAutocomplete Immediate=false @ref="@StoreNumberField" Variant=Variant.Outlined Required=@StoreRequired T="string" Label="Store Number" Value="storeNum" ValueChanged=OnStoreNumChanged SearchFunc="@StoreSearch"
+                CoerceText="false" CoerceValue="@true"
+                AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+
+                <MudSelect Class="mt-4" Required=true T="string" CoerceText="false" Label="Device Type" @bind-Value="deviceType" Variant="Variant.Outlined">
+                    @foreach(var devicetype in deviceTypes)
+                {
+                   <MudSelectItem T="string" Value="@devicetype">@devicetype</MudSelectItem>
+
+                }
+            </MudSelect>
+                <MudSelect Class="mt-4" T="string" Required=true @ref=lanenumberfield T="string" CoerceText="false" Label="Lane Number" @bind-Value="laneNum" Variant="Variant.Outlined" >
+                 @foreach(var lane in deviceNumbers)
+                {
+                   <MudSelectItem T="string" Value="@lane">@lane</MudSelectItem>
+
+                }
+                    </MudSelect>
+
+                <MudTextField Class="mt-4" T="string" Label="Serial Number" Variant=Variant.Outlined @bind-Value="deviceSerial" Required="true" RequiredError="Serial Number is required!"/>
+                @if(deviceType == "UPS")
+            {
+                    <MudDatePicker Required=true RequiredError="Battery Install Date is required for UPSs!" Class="mt-4" Variant=Variant.Outlined  Label="Battery Install Date"  Date="@batteryinstalldate"/>
+
+
+            }
+                @if(ManualEntry)
+            {
+                 <MudTextField Class="mt-4" T="string" Label="IP Address" Variant=Variant.Outlined @bind-Value="deviceIp" Required="true" RequiredError="IP Address is required!"/>
+                 <MudTextField Class="mt-4" T="string" Label="MAC Address" Variant=Variant.Outlined @bind-Value="deviceMac" Required="true" RequiredError="MAC Address is required!"/>
+
+            }
+            @if (Elements.Count() > 0)
+            {
+                <MudText Class="pt-6" Typo=Typo.h6>Available Devices (Not already Registered):</MudText>
+
+                <MudTable Outlined=true @ref=mudTable T=Device Hover=true RowClassFunc=SelectedRowClassFunc OnRowClick=RowClickEvent Class="mt-6" 
+                Items="@Elements.Where(x=> !TheseDevices.Select(x=>x.deviceip).Contains(x.IP))" 
+                @bind-SelectedItem=selectedItem>
+                    <HeaderContent>
+                        <MudTh>IP Address</MudTh>
+                        <MudTh>Default Type</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Name</MudTh>
+                        <MudTh>MAC</MudTh>
+                        <MudTh>Last ARP</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="IP Address">@context.IP</MudTd>
+                        <MudTd DataLabel="Default Type">@context.DefaultType</MudTd>
+                        <MudTd DataLabel="Type">@context.Type</MudTd>
+                        <MudTd DataLabel="Name">@context.Name.Split('\n').First()</MudTd>
+                        <MudTd DataLabel="MACs">@context.MAC</MudTd>
+                        <MudTd DataLabel="Last ARP">@context.LastARP</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+            <MudDivider/>
+@if(TheseDevices.Count() > 0)
+{
+<MudText Class="pt-6" Typo=Typo.h6>Registered Devices:</MudText>
+<MudTable Items="@TheseDevices" ReadOnly="true" SortLabel="Sort By" T="DeviceModel" Class="mt-4" Elevation=4 Outlined=true>
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Devices</MudText>
+        <MudSpacer />
+    </ToolBarContent>
+    <ColGroup>
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.devicename)">Device Name</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.devicetype)">Device Type</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.deviceip)">IP Address</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.store)">Store Number</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.lanenumber)">Lane</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.serial)">Serial Number</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.mac)">MAC Address</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.installdate)">Install Date</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.activated)">Active</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.status)">Install Status</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.batteryinstalldate)">Battery Install Date (UPS Only)</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.modified)">Modified</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Device Name">@context.devicename</MudTd>
+        <MudTd DataLabel="Device Type">@((DeviceTypeEnum)context.devicetype)</MudTd>
+        <MudTd DataLabel="IP Address">@context.deviceip</MudTd>
+        <MudTd DataLabel="Store Number">@context.store</MudTd>
+        <MudTd DataLabel="Lane">@context.lanenumber</MudTd>
+        <MudTd DataLabel="Serial Number">@context.serial</MudTd>
+        <MudTd DataLabel="MAC Address">@context.mac</MudTd>
+        <MudTd DataLabel="Install Date">@context.installdate.ToShortDateString()</MudTd>
+        <MudTd>
+            <MudCheckBox Disabled="true" ReadOnly="true" Checked="@context.activated"></MudCheckBox>
+        </MudTd>
+        @*<MudTd DataLabel="Activated"></MudTd>*@
+        <MudTd DataLabel="Status">@context.status</MudTd>
+
+        @if(context.devicetype == 0)
+        {
+        <MudTd DataLabel="Battery Install Date">@context.batteryinstalldate.ToShortDateString()</MudTd>
+
+        }
+        else
+        {
+           <MudTd DataLabel="Battery Install Date">N/A</MudTd>
+        }
+
+        <MudTd DataLabel="Modified">@context.modified</MudTd>
+
+    </RowTemplate>
+    </MudTable>
+}
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" OnClick="@(()=>OnButtonClicked())" Class="ml-auto">Confirm</MudButton>
+        </MudCardActions>
+
+    </MudCard>
+
+}
+else
+{
+    <MudText>You are not authorized to register devices. Please contact your system administrator.</MudText>
+}
+</MudContainer>
+
+@*</div>*@
+
+
+@code
+{
+
+    private string userDisplayName;
+    bool success;
+    MudForm form;
+    public MudAutocomplete<string> StoreNumberField = new();
+    [Parameter]
+    public string storeNum { get; set; }
+    public List<ManagedPower.SDK.Models.API.Location> AllLocations { get; set; } = new();
+    private string deviceType { get; set; }
+    private string laneNum{ get; set; }
+    private string deviceIp { get; set; }
+    private string deviceName{ get; set; }
+    public string deviceSerial{ get; set; }
+    private string deviceMac{ get; set; }
+    private DateTime batteryinstalldate { get; set; } = DateTime.Now;
+    private bool storeLive = true;
+    [Inject] private IDialogService DialogService { get; set; }
+
+    public DeviceTypeEnum ThisDeviceType { get; set; }
+
+    public enum DeviceTypeEnum { UPS,PDU };
+
+
+    private string[] deviceNumbers = { "Back Rack", "Lane 1", "Lane 2", "Lane 3", "Lane 4", "Lane 5", "Lane 6" };
+    private string[] deviceTypes = { "UPS", "PDU" };
+
+
+
+    private async Task<IEnumerable<string>> DeviceSearch(string value)
+    {
+        // In real life use an asynchronous function for fetching data from an api.
+        await Task.Delay(5);
+
+        // if text is null or empty, show complete list
+        if (string.IsNullOrEmpty(value))
+            return deviceNumbers;
+        return deviceNumbers.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+
+
+    private async Task<IEnumerable<string>> StoreSearch(string value)
+    {
+        // In real life use an asynchronous function for fetching data from an api.
+        // if text is null or empty, show complete list
+        if (string.IsNullOrEmpty(value)) {
+            storeLive = true;
+            return (IEnumerable<string>)AllLocations.Select(X => X.storenumber);
+        }
+        if (!AllLocations.Any(x => x.storenumber.Contains(value, StringComparison.InvariantCultureIgnoreCase)))
+        {
+            storeLive = false;
+        }
+        return (IEnumerable<string>)AllLocations.Where(x => x.storenumber.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Select(x=>x.storenumber);
+    }
+
+    private async Task<IEnumerable<string>> DeviceType(string value)
+    {
+        await Task.Delay(5);
+
+        if (string.IsNullOrEmpty(value))
+        {
+            return deviceTypes;
+        }
+        return deviceTypes.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+
+    }
+}

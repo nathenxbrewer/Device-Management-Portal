@@ -1,0 +1,211 @@
+﻿@page "/manage/locations/location"
+﻿@using System.Net.Http.Json
+@using ManagedPower.SDK.Models.API
+@using Microsoft.AspNetCore.WebUtilities
+@using ManagedPower.Portal.Components
+@inject NavigationManager NavManager
+@inject HttpClient httpClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+
+
+@using System.Text.RegularExpressions
+@using Newtonsoft.Json
+@using System.Text
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" @ref=Tabs>
+    	<Header>
+            <MudMenu >
+                    <ActivatorContent>
+        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" OnClick="SetSelectedDevice">I am a button</MudIconButton>
+    </ActivatorContent>
+    <ChildContent>
+    <MudMenuItem OnClick="@( () => RefreshLocation() )">Refresh Location Data</MudMenuItem>
+    <MudMenuItem OnClick="@( () => RegisterNew())" >Register New Device</MudMenuItem>
+@*    <MudMenuItem OnClick="@( () => DeregisterDevice())" Disabled=@(SelectedDevice == null)>De-Register Device</MudMenuItem>
+*@    <MudMenuItem Disabled=true>Edit Location</MudMenuItem>
+    </ChildContent>
+</MudMenu>
+	</Header>
+    <ChildContent>
+    <MudTabPanel Text="Location Detail" Style="text-transform: none;">
+        <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors">
+            <MudTextField T="string" Label="Store Number" Text="@ThisLocation.storenumber" ReadOnly=true/>
+            <MudTextField T="string" Label="Division" Text="@ThisLocation.division"ReadOnly=true />
+            <MudTextField T="string" Label="Region" Value="@ThisLocation.region"ReadOnly=true />
+            <MudTextField T="string" Label="Market" Value="@ThisLocation.market" ReadOnly=true/>
+            <MudTextField T="string" Label="Address" Text="@ThisLocation.address" ReadOnly=true/>
+            <MudTextField T="string" Label="City" Text="@ThisLocation.city" ReadOnly=true/>
+            <MudTextField T="string" Label="State" Text="@ThisLocation.state" ReadOnly=true/>
+            <MudTextField T="string" Label="Phone" Text="@ThisLocation.phone" ReadOnly=true/>
+            <MudTextField T="string" Label="Status" Text="@ThisLocation.status" ReadOnly=true/>
+            <MudTextField T="int" Label="Expected Devices" Value="@ThisLocation.expectedDevices" ReadOnly=true/>
+            <MudTextField T="string" Label="POS Type" Text="@ThisLocation.posType" ReadOnly=true/>
+@*            <MudTextField ReadOnly="true" T="int" Label="Expected Devices" Value="@ThisLocation.expectedDevices" />
+*@            <MudTextField ReadOnly="true" T="string" Label="POS Type" Text="@ThisLocation.posType" />
+            <MudField Label="Tags" Variant="Variant.Outlined" Class="pt-4">
+
+            @if (ThisLocation.tags != null)
+            {
+                foreach(var tag in ThisLocation.tags.Split(','))
+                {
+                    <MudChip Variant="Variant.Text">@tag</MudChip>
+                }
+            }
+            </MudField>
+
+        </MudForm>
+
+    </MudTabPanel>
+
+    @foreach (var device in TheseDevices)
+   { 
+               @if(device.devicetype == 0)
+            {
+    <MudTabPanel Text="@device.devicename" Style="text-transform: none;" Icon="@Icons.Material.Filled.BatteryFull">
+<UPSDevice ThisDevice=@device></UPSDevice>
+        </MudTabPanel>
+
+            }
+            else
+            {
+                    <MudTabPanel Text="@device.devicename" Style="text-transform: none;" Icon="@Icons.Material.Filled.Power">
+
+                <PDUDevice ThisDevice=@device></PDUDevice>
+                        </MudTabPanel>
+
+
+            }
+   }
+   </ChildContent>
+
+</MudTabs>
+
+
+@code
+{
+
+    bool success;
+    string[] errors = { };
+    MudTextField<string> pwField1;
+    MudForm form;
+    MudTabs Tabs;
+
+    ManagedPower.SDK.Models.API.Location ThisLocation = new SDK.Models.API.Location();
+    List<ManagedPower.SDK.Models.API.Location> AllLocations = new List<SDK.Models.API.Location>();
+    List<DeviceModel> Devices = new List<DeviceModel>();
+    List<DeviceModel> TheseDevices = new List<DeviceModel>();
+
+    DeviceModel SelectedDevice = new DeviceModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        AllLocations = await httpClient.GetFromJsonAsync<List<ManagedPower.SDK.Models.API.Location>>("http://cluw12q05.macsstores.com/managedpower/locations/");
+        Devices = await httpClient.GetFromJsonAsync<List<ManagedPower.SDK.Models.API.DeviceModel>>("http://cluw12q05.macsstores.com/managedpower/devices/Installed");
+
+
+        var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("id", out var storeid))
+        {
+            var id = Convert.ToInt32(storeid);
+            ThisLocation = AllLocations.FirstOrDefault(x => x.id == id);
+            TheseDevices = Devices.Where(x => x.store == ThisLocation.storenumber).ToList();
+            // OpenOverlay(id.ToString());
+        }
+    }
+
+    async Task RefreshLocation()
+    {
+        var thissite = Vars.AllSites.FirstOrDefault(x => x.StoreNumber == ThisLocation.storenumber);
+        if(thissite != null)
+        {
+            if (thissite.Longitude == null || thissite.Latitude == null)
+            {
+                //Get lon and lat from SNOW
+                var currentLocation = CircleK.SNOW.SDK.LocationModel.GetLocationInfo(thissite.StoreNumber, false);
+                if (currentLocation.result.records_count > 0)
+                {
+                    var currentstore = JsonConvert.DeserializeObject<CircleK.SNOW.SDK.Models.Location>(currentLocation.result.records.First().ToString());
+                    thissite.Longitude = currentstore.longitude;
+                    thissite.Latitude = currentstore.latitude;
+                }
+            }
+
+            //update location via API PATCH call. 
+            var location = new ManagedPower.SDK.Models.API.Location()
+                {
+                    id = ThisLocation.id,
+                    created = DateTime.Now,
+                    modified = DateTime.Now,
+                    storenumber = thissite.StoreNumber,
+                    division = thissite.BU,
+                    region = thissite.Region,
+                    market = thissite.MktDist,
+                    address = thissite.Address,
+                    city = thissite.City,
+                    state = thissite.St,
+                    phone = thissite.Phone,
+                    status = "Installed",
+                    expectedDevices = ThisLocation.expectedDevices,
+                    posType = thissite.POSType,
+                    lon = float.Parse(thissite.Longitude),
+                    lat = float.Parse(thissite.Latitude)
+                };
+            var jsonstring = JsonConvert.SerializeObject(location);
+
+            using (var client = new HttpClient())
+            {
+                var res = client.PostAsync($"http://cluw12q05.macsstores.com/managedpower/locations/{ThisLocation.id}",
+                    new StringContent(jsonstring,
+                    Encoding.UTF8, "application/json")
+                );
+                try
+                {
+                    res.Result.EnsureSuccessStatusCode();
+                    Snackbar.Add($"Location {thissite.StoreNumber} has been updated.", Severity.Success);
+                    AllLocations = await httpClient.GetFromJsonAsync<List<ManagedPower.SDK.Models.API.Location>>("http://cluw12q05.macsstores.com/managedpower/locations/");
+
+                    ThisLocation = AllLocations.FirstOrDefault(x => x.id == ThisLocation.id);
+                    await InvokeAsync(StateHasChanged);
+
+
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+            }
+
+        }
+
+
+    }
+    void RegisterNew()
+    {
+        var parameters = new DialogParameters { ["storeNum"]=ThisLocation.storenumber };
+        var options = new DialogOptions() { FullScreen = true, CloseButton = true};
+        DialogService.Show<Registration>("",parameters,options);
+
+    }
+
+    void DeregisterDevice()
+    {
+        
+    }
+
+    void SetSelectedDevice()
+    {
+
+        int index = Tabs.ActivePanelIndex - 1;
+        if(index >= 0)
+        {
+            SelectedDevice = TheseDevices[index];
+        }
+        else
+        {
+            SelectedDevice = null;
+        }
+    }
+
+}

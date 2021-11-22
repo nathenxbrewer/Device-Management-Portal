@@ -1,0 +1,229 @@
+﻿@page "/manage/devices"
+﻿@using System.Net.Http.Json
+@using ManagedPower.Portal.Models
+@using ManagedPower.SDK.Models
+@using ManagedPower.SDK.Models.API
+
+@inject HttpClient httpClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<<<<<<< HEAD
+<MudTable Items="@Elements" Dense="@dense" Hover="@hover" ReadOnly="true" Filter="new Func<DeviceModel, bool>(FilterFunc)" @bind-SelectedItems="selectedItems" SortLabel="Sort By" MultiSelection="CanEdit" @ref="mudTable" T="DeviceModel">
+=======
+
+
+<MudTable Items="@Elements" Dense="@dense" Hover="@hover" ReadOnly="true" Filter="new Func<DeviceModel, bool>(FilterFunc)" @bind-SelectedItems="selectedItems" SortLabel="Sort By" MultiSelection="true" @ref="mudTable" T="DeviceModel">
+>>>>>>> main
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Devices</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <ColGroup>
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.devicename)" InitialDirection=SortDirection.Ascending>Device Name</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.devicetype)">Device Type</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.deviceip)">IP Address</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.store)">Store Number</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.lanenumber)">Lane</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.serial)">Serial Number</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.mac)">MAC Address</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.installdate)">Install Date</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.activated)">Active</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.status)">Install Status</MudTableSortLabel></MudTh>
+@*        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.batteryinstalldate)">Battery Install Date (UPS Only)</MudTableSortLabel></MudTh>
+*@        <MudTh>Location Tags</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DeviceModel, object>(x => x.modified)">Modified</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Device Name">@context.devicename</MudTd>
+        <MudTd DataLabel="Device Type">@((DeviceType)context.devicetype)</MudTd>
+        <MudTd DataLabel="IP Address">@context.deviceip</MudTd>
+        <MudTd DataLabel="Store Number">@context.store</MudTd>
+        <MudTd DataLabel="Lane">@context.lanenumber</MudTd>
+        <MudTd DataLabel="Serial Number">@context.serial</MudTd>
+        <MudTd DataLabel="MAC Address">@context.mac</MudTd>
+        <MudTd DataLabel="Install Date">@context.installdate.ToShortDateString()</MudTd>
+        <MudTd>
+            <MudCheckBox Disabled="true" ReadOnly="true" Checked="@context.activated"></MudCheckBox>
+        </MudTd>
+        @*<MudTd DataLabel="Activated"></MudTd>*@
+        <MudTd DataLabel="Status">@context.status</MudTd>
+@*
+        @if(context.devicetype == 0)
+        {
+        <MudTd DataLabel="Battery Install Date">@context.batteryinstalldate.ToShortDateString()</MudTd>
+
+        }
+        else
+        {
+           <MudTd DataLabel="Battery Install Date">N/A</MudTd>
+        }*@
+                <MudTd>
+            @{
+                var tags = AllLocations.FirstOrDefault(x => x.storenumber == context.store).tags;
+                if(tags != null)
+            {
+                foreach(var tag in tags.Split(','))
+                {
+                    <MudChip Variant="Variant.Text">@tag</MudChip>
+                }
+            }
+            }
+
+        </MudTd>
+        <MudTd DataLabel="Modified">@context.modified</MudTd>
+
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+        <FooterContent>
+     @if(CanEdit)
+    {
+       @if(selectedItems.Count() > 0)
+        {
+
+            <MudBadge Content="@selectedItems.Count()" Color="Color.Primary" Overlap="true" Class="mx-6 my-4">
+                <MudButton Variant="Variant.Filled" OnClick="@(() => DeleteSelected())" StartIcon="@Icons.Material.Filled.Delete" Style="text-" Color="Color.Error">Delete</MudButton>
+            </MudBadge>
+
+        }
+        else
+        {
+              <MudBadge Class="mx-6 my-4">
+             <MudButton Variant="Variant.Filled" Disabled="true" StartIcon="@Icons.Material.Filled.Delete" Style="text-" Color="Color.Error">Delete</MudButton>
+              </MudBadge>
+        }
+                        }
+    </FooterContent>
+
+</MudTable>
+
+<MudMessageBox @ref="mbox" Title="Warning" CancelText="Cancel" style="width:600px">
+    <MessageContent>
+        Deleting can <b><i>not</i></b> be undone!
+    </MessageContent>
+    <YesButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteForever">Delete</MudButton>
+    </YesButton>
+</MudMessageBox>
+
+@*<MudSwitch @bind-Checked="@hover" Color="Color.Primary">Hover</MudSwitch>
+    <MudSwitch @bind-Checked="@dense" Color="Color.Secondary">Dense</MudSwitch>
+    <MudSwitch @bind-Checked="@ronly" Color="Color.Tertiary">Read Only</MudSwitch>
+    <MudSwitch @bind-Checked="@canCancelEdit" Color="Color.Info">Can Cancel Edit</MudSwitch>*@
+@*<MudText Inline="true">Selected items: @(selectedItems == null ? "" : string.Join(", ", selectedItems.OrderBy(x => x.devicename).Select(x => x.devicename)))</MudText>*@
+
+
+@code {
+    private MudBlazorAdminDashboard _theme = new();
+    private List<string> editEvents = new();
+    private bool dense = false;
+    private bool hover = true;
+    private bool ronly = false;
+    private bool canCancelEdit = false;
+    private string searchString = "";
+    private HashSet<DeviceModel> selectedItems = new HashSet<DeviceModel>();
+    private int selectedRowNumber = -1;
+    private MudTable<DeviceModel> mudTable;
+    private List<string> clickedEvents = new();
+    public DeviceType ThisDeviceType { get; set; }
+    public enum DeviceType { UPS,PDU };
+
+    private List<DeviceModel> Elements = new List<DeviceModel>();
+    public List<ManagedPower.SDK.Models.API.Location> AllLocations { get; set; }
+
+    private int[] allowedRolesDelete = new int[]{1,2};
+    public bool CanEdit { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        CanEdit = (Vars.LoggedInUser.UserRoles.Select(x => x.roleId).Intersect(allowedRolesDelete).Count() > 0);
+        Elements = await httpClient.GetFromJsonAsync<List<DeviceModel>>("http://cluw12q05.macsstores.com/managedpower/devices/Installed");
+        AllLocations = await httpClient.GetFromJsonAsync<List<ManagedPower.SDK.Models.API.Location>>("http://cluw12q05.macsstores.com/managedpower/locations/");
+    }
+
+
+<<<<<<< HEAD
+=======
+    
+
+>>>>>>> main
+    private void RowClickEvent(TableRowClickEventArgs<DeviceModel> tableRowClickEventArgs)
+    {
+        clickedEvents.Add("Row has been clicked");
+    }
+
+    private string SelectedRowClassFunc(DeviceModel device, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (mudTable.SelectedItem != null && mudTable.SelectedItem.Equals(device))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+
+    private void ClearEventLog()
+    {
+        editEvents.Clear();
+    }
+
+    private bool FilterFunc(DeviceModel device)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (device.devicename.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (device.store.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if ($"{device.serial} {device.mac} {device.deviceip}".Contains(searchString))
+            return true;
+        return false;
+    }
+
+    private async void DeleteDevice(DeviceModel item)
+    {
+
+        var deleteresult = await httpClient.GetFromJsonAsync<APIResult>($"http://cluw12q05.macsstores.com/managedpower/devices/delete/{item.id}");
+        if (deleteresult.error)
+        {
+            Snackbar.Add($"Error while deleting {item.devicename}", Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add($"{item.devicename} deleted successfully!", Severity.Success);
+        }
+
+        //refresh the list
+        Elements = await httpClient.GetFromJsonAsync<List<DeviceModel>>("http://cluw12q05.macsstores.com/managedpower/devices/Installed");
+        this.StateHasChanged();
+        NavigationManager.NavigateTo("/manage/devices", true);
+
+
+        }
+}

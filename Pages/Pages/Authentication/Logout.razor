@@ -1,0 +1,25 @@
+﻿@page "/logout"
+@inject NavigationManager NavManager
+
+<AuthorizeView>
+    <Authorized>
+        Hello, @context.User.Identity.Name!
+        <a href="MicrosoftIdentity/Account/SignOut">Log out</a>
+        <MudMenu Icon="@Icons.Material.Outlined.Widgets" Color="Color.Inherit" Direction="Direction.Bottom" OffsetY="true" Dense="true">
+            <MudMenuItem OnClick=LogoutFunc>MudBlazor</MudMenuItem>
+            </MudMenu>
+    </Authorized>
+    <NotAuthorized>
+        <a href="MicrosoftIdentity/Account/SignIn">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code
+{
+    void LogoutFunc()
+    {
+       NavManager.NavigateTo("MicrosoftIdentity/Account/SignOut", true);
+
+    }
+}

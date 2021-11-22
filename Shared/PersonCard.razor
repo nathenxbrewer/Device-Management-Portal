@@ -1,0 +1,16 @@
+﻿<MudCard Elevation="0" Square="true" Class="@Class" Style="@Style">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudAvatar Image="@Vars.base64UserPhoto"/>
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.body2">@(Vars.LoggedInUser.givenName + " " + Vars.LoggedInUser.surname)</MudText>
+            <MudText Typo="Typo.caption">@Vars.LoggedInUser.jobTitle</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+</MudCard>
+
+@code {
+    [Parameter] public string Class { get; set; }
+    [Parameter] public string Style { get; set; }
+}

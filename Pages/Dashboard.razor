@@ -1,0 +1,27 @@
+﻿@page "/"
+@page "/dashboard"
+@using ManagedPower.SDK.Models.API
+
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Dashboard</MudText>
+<MudGrid>
+    <MudItem xs="12" sm="6" md="6">
+        <MudPaper  Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
+            <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" Color="Color.Success" Class="mx-4" Style="width:54px; height:54px;"></MudIcon>
+            <div>
+                <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Global Health</MudText>
+                <MudText Typo="Typo.h5">@HealthPercent%</MudText>
+            </div>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="6">
+        <MudPaper  Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Class="mx-4" Style="width:54px; height:54px;"></MudIcon>
+            <div>
+                <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Active Alarms</MudText>
+                <MudLink Typo="Typo.h5" Color=Color.Error Style="cursor:pointer;" Href="/managedpower/portal/manage/alarms">@OpenAlarms.Count()</MudLink>
+            </div>
+        </MudPaper>
+    </MudItem>
+<ManagedPower.Portal.Components.AlarmsDisplay Alarms=OpenAlarms></ManagedPower.Portal.Components.AlarmsDisplay>
+</MudGrid>

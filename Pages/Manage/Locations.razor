@@ -1,0 +1,240 @@
+﻿@page "/manage/locations"
+﻿@using System.Net.Http.Json
+@using ManagedPower.Portal.Models
+@using ManagedPower.SDK.Models.API
+@using Shared.Dialogs
+
+@inject HttpClient httpClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+
+<style>
+    .selected {
+        background-color: #EE2E24 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+<MudTable Items="@AllLocations" Dense="@dense" Hover="@hover" ReadOnly="true" Filter="new Func<ManagedPower.SDK.Models.API.Location,bool>(FilterFunc)" @bind-SelectedItem="selectedItem" SortLabel="Sort By" MultiSelection="false" @ref="mudTable"
+          RowClassFunc="@SelectedRowClassFunc" @ondblclick="(() => OnDbClick(selectedItem.id))" @onclick:stopPropagation="true" T="ManagedPower.SDK.Models.API.Location">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Locations</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <ColGroup>
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+    </ColGroup>
+    <HeaderContent>
+@*        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.id)">ID</MudTableSortLabel></MudTh>
+*@        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.storenumber)" InitialDirection=SortDirection.Ascending>Store Number</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.division)">Division</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.region)">Region</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.market)">Market</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.address)">Address</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.city)">City</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.state)">State</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.phone)">Phone</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.status)">Status</MudTableSortLabel></MudTh>
+@*        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.expectedDevices)"># Devices</MudTableSortLabel></MudTh>
+*@        
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.StoreGroups, object>(x=>x.Name)">Store Groups</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ManagedPower.SDK.Models.API.Location, object>(x=>x.modified)">Last Modified</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+@*        <MudTd DataLabel="ID">@context.id</MudTd>
+*@        <MudTd DataLabel="Store Number">@context.storenumber</MudTd>
+        <MudTd DataLabel="Division">@context.division</MudTd>
+        <MudTd DataLabel="Region">@context.region</MudTd>
+        <MudTd DataLabel="Market">@context.market</MudTd>
+        <MudTd DataLabel="Address">@context.address</MudTd>
+        <MudTd DataLabel="City">@context.city</MudTd>
+        <MudTd DataLabel="State">@context.state</MudTd>
+        <MudTd DataLabel="Phone">@context.phone</MudTd>
+        <MudTd DataLabel="Status">@context.status</MudTd>
+@*        <MudTd DataLabel="# Devices">@context.expectedDevices</MudTd>
+*@        <MudTd>
+
+         @if (getStoreGroups(@context.storenumber) != null)
+            {
+                foreach(var group in getStoreGroups(@context.storenumber))
+                {
+                    <MudChip Variant="Variant.Text" OnClick="(() => OpenStoreGroup(group.Id))" >@group.Name</MudChip>
+                }
+            }
+
+        </MudTd>
+
+        <MudTd DataLabel="Last Modified">@context.modified</MudTd>
+        
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+@if(Vars.AllSites != null)
+{
+<MudButton OnClick=AddNewLocation Color=Color.Primary Variant=Variant.Filled Class="mt-2">Add New</MudButton>
+
+}
+<MudButton OnClick=AddNewStoreGroup Color=Color.Primary Variant=Variant.Filled Class="mt-2">Add New Group</MudButton>
+
+@*<MudSwitch @bind-Checked="@hover" Color="Color.Primary">Hover</MudSwitch>
+    <MudSwitch @bind-Checked="@dense" Color="Color.Secondary">Dense</MudSwitch>
+    <MudSwitch @bind-Checked="@ronly" Color="Color.Tertiary">Read Only</MudSwitch>
+    <MudSwitch @bind-Checked="@canCancelEdit" Color="Color.Info">Can Cancel Edit</MudSwitch>*@
+@*<MudText Inline="true">Selected items: @(selectedItem==null ? "" : selectedItem.storenumber)</MudText>
+*@
+
+@*<MudExpansionPanels Style="flex: 1;">
+    <MudExpansionPanel Text="Show inline-edit event log">
+        @foreach (var message in editEvents)
+        {
+            <MudText>@message</MudText>
+        }
+        @if (editEvents.Count > 0)
+        {
+            <div class="d-flex">
+                <MudSpacer />
+                <MudButton Class="mt-3" ButtonType="ButtonType.Button" Variant="Variant.Filled" OnClick="ClearEventLog">Clear event log</MudButton>
+            </div>
+        }
+    </MudExpansionPanel>
+</MudExpansionPanels>*@
+
+
+@code {
+    private List<string> editEvents = new();
+    private bool dense = false;
+    private bool hover = true;
+    private bool ronly = false;
+    private bool canCancelEdit = false;
+    private string searchString = "";
+    private ManagedPower.SDK.Models.API.Location selectedItem = new ManagedPower.SDK.Models.API.Location();
+
+    private List<ManagedPower.SDK.Models.API.StoreGroups> AllStoreGroups { get; set; }
+
+    private int selectedRowNumber = -1;
+    private MudTable<ManagedPower.SDK.Models.API.Location> mudTable;
+    private List<string> clickedEvents = new();
+    //    private IEnumerable<ManagedPower.SDK.Models.API.Location> Elements = new List<ManagedPower.SDK.Models.API.Location>()
+    //{
+    //        new Element() { Number = 1, Sign = "H", Name = "Hydrogen", Position = 0, Molar = 1.00794 },
+    //        new Element() { Number = 2, Sign = "He", Name = "Helium", Position = 17, Molar = 4.002602 },
+    //        new Element() { Number = 3, Sign = "Li", Name = "Lithium", Position = 0, Molar = 6.941 }
+    //    };
+
+    public List<ManagedPower.SDK.Models.API.Location> AllLocations { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Elements = await httpClient.GetFromJsonAsync<List<Element>>("webapi/periodictable");
+        //var siteList = new CircleK.Smartsheet.SiteList();
+        //AllSites = siteList.Sites;
+        AllLocations = await httpClient.GetFromJsonAsync<List<ManagedPower.SDK.Models.API.Location>>("http://cluw12q05.macsstores.com/managedpower/locations/");
+        AllStoreGroups = await httpClient.GetFromJsonAsync<List<ManagedPower.SDK.Models.API.StoreGroups>>("http://cluw12q05.macsstores.com/managedpower/storegroups/");
+    }
+
+
+    async Task AddNewLocation()
+    {
+        var dialog = DialogService.Show<NewLocationDialog>();
+        var result = await dialog.Result;
+        NavigationManager.NavigateTo("manage/locations", true);
+
+
+        //if (!result.Cancelled)
+        //{
+        //    Snackbar.Add($"Location Added!", Severity.Success);
+        //}
+    }
+
+
+    public List<StoreGroups> getStoreGroups(string storeNumber) => AllStoreGroups.Where(x => x.Stores.Contains(storeNumber, StringComparison.InvariantCultureIgnoreCase)).ToList();
+
+    async Task AddNewStoreGroup()
+    {
+        var dialog = DialogService.Show<NewStoreGroupDialog>();
+        var result = await dialog.Result;
+        NavigationManager.NavigateTo("manage/locations", true);
+    }
+
+    void OpenStoreGroup(int id)
+    {
+                if(id > 0)
+        {
+          NavigationManager.NavigateTo($"manage/storegroup?id={id}");
+
+        }
+    }
+
+    void OnDbClick(int id)
+    {
+        if(id > 0)
+        {
+          NavigationManager.NavigateTo($"manage/locations/location?id={id}");
+
+        }
+
+    }
+
+    public void EditStore(int id)
+    {
+    }
+
+    private string SelectedRowClassFunc(ManagedPower.SDK.Models.API.Location element, int rowNumber)
+    {
+        if (selectedRowNumber == rowNumber)
+        {
+            selectedRowNumber = -1;
+            clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (mudTable.SelectedItem != null && mudTable.SelectedItem.Equals(element))
+        {
+            selectedRowNumber = rowNumber;
+            clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+
+    private void ClearEventLog()
+    {
+        editEvents.Clear();
+    }
+
+    private bool FilterFunc(ManagedPower.SDK.Models.API.Location element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.storenumber.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.city.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if ($"{element.address} {element.posType} {element.phone}".Contains(searchString))
+            return true;
+        return false;
+    }
+}
